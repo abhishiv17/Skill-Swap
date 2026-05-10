@@ -53,25 +53,23 @@ export default function MatchesPage() {
     try {
       const allMatches: MatchResult[] = [];
 
-      for (const skill of desiredSkills) {
-        try {
-          const res = await authFetch('/api/ai/match', {
-            method: 'POST',
-            body: JSON.stringify({ desiredSkill: skill.skill_name }),
-          });
+      try {
+        const res = await authFetch('/api/ai/match', {
+          method: 'POST',
+          body: JSON.stringify({ desiredSkills: desiredSkills.map(s => s.skill_name) }),
+        });
 
-          if (res.ok) {
-            const data = await res.json();
-            if (data.matches && Array.isArray(data.matches)) {
-              allMatches.push(...data.matches);
-            }
-          } else {
-            const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
-            toast.error(`Error matching "${skill.skill_name}": ${errData.error || res.statusText}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.matches && Array.isArray(data.matches)) {
+            allMatches.push(...data.matches);
           }
-        } catch (fetchErr) {
-          toast.error(`Network error while searching for "${skill.skill_name}"`);
+        } else {
+          const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
+          toast.error(`Error matching skills: ${errData.error || res.statusText}`);
         }
+      } catch (fetchErr) {
+        toast.error(`Network error while searching for matches`);
       }
 
       // Deduplicate
@@ -129,6 +127,14 @@ export default function MatchesPage() {
         title: 'New Session Request!',
         message: `${profile?.username || 'Someone'} wants to learn ${match.offered_skill} from you.`,
         link: '/dashboard/sessions',
+      });
+
+      // Send automated message to initiate scheduling
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      await supabase.from('messages').insert({
+        sender_id: profile!.id,
+        receiver_id: match.peer_id,
+        content: `Hi! I'd like to request a session to learn ${match.offered_skill} from you. Please let me know what day and time works best for you! (My timezone is ${timezone})`
       });
 
       // Send Email

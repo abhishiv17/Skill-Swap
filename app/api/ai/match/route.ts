@@ -12,9 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { desiredSkill } = await req.json();
-    if (!desiredSkill) {
-      return NextResponse.json({ error: 'desiredSkill is required' }, { status: 400 });
+    const { desiredSkills } = await req.json();
+    if (!desiredSkills || !Array.isArray(desiredSkills) || desiredSkills.length === 0) {
+      return NextResponse.json({ error: 'desiredSkills array is required' }, { status: 400 });
     }
 
     // Fetch all offered skills from other users
@@ -57,10 +57,11 @@ export async function POST(req: Request) {
       };
     });
 
-    console.log(`[Match API] Searching "${desiredSkill}" — found ${availablePeers.length} peers offering skills`);
+    console.log(`[Match API] Searching "${desiredSkills.join(', ')}" — found ${availablePeers.length} peers offering skills`);
 
     // Call Groq AI (with fallback to keyword matching)
-    const matchResults = await findMatches(desiredSkill, availablePeers);
+    // Modify findMatches if it only accepts a string
+    const matchResults = await findMatches(desiredSkills.join(', '), availablePeers);
 
     console.log(`[Match API] Returning ${matchResults?.matches?.length ?? 0} matches`);
 

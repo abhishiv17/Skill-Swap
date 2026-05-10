@@ -117,8 +117,16 @@ export default function SessionsPage() {
 
   async function handleUpdateStatus(sessionId: string, newStatus: string, peerId: string, isAccepting: boolean = false) {
     try {
-      const { error } = await supabase.from('sessions').update({ status: newStatus }).eq('id', sessionId);
-      if (error) throw error;
+      const res = await fetch('/api/sessions/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, status: newStatus })
+      });
+
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error || 'Failed to update session');
+      }
 
       if (isAccepting) {
         const myProfile = await supabase.from('profiles').select('username').eq('id', user!.id).single();
@@ -133,8 +141,12 @@ export default function SessionsPage() {
 
       toast.success(`Session ${newStatus}`);
       queryClient.invalidateQueries({ queryKey: ['sessions', user?.id] });
+      // Update useUser hook to refresh credits if refunded
+      if (newStatus === 'cancelled' || newStatus === 'rejected') {
+         setTimeout(() => window.location.reload(), 1000); // Quick hack to refresh credits in context
+      }
     } catch (err: any) {
-      toast.error('Failed to update session');
+      toast.error(err.message || 'Failed to update session');
     }
   }
 
@@ -171,15 +183,9 @@ export default function SessionsPage() {
     }
   }
 
-  async function handleDelete(sessionId: string) {
-    try {
-      const { error } = await supabase.from('sessions').delete().eq('id', sessionId);
-      if (error) throw error;
-      toast.success('Session cancelled');
-      queryClient.invalidateQueries({ queryKey: ['sessions', user?.id] });
-    } catch (err: any) {
-      toast.error('Failed to cancel session');
-    }
+  async function handleDelete(sessionId: string, peerId: string) {
+    // Instead of hard delete, we cancel it so escrow triggers
+    await handleUpdateStatus(sessionId, 'cancelled', peerId);
   }
 
   const sessions = data?.sessions || [];
@@ -389,7 +395,7 @@ export default function SessionsPage() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => handleDelete(session.id)}
+                        onClick={() => handleDelete(session.id, peerId)}
                         className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[var(--bg-surface-solid)] hover:bg-accent-coral/10 text-[var(--text-muted)] hover:text-accent-coral border border-[var(--glass-border)] text-xs font-bold rounded-xl transition-all"
                       >
                         <Trash2 size={14} /> Cancel Request
@@ -451,7 +457,7 @@ export default function SessionsPage() {
                     {session.status === 'rejected' && (
                       <button
                         type="button"
-                        onClick={() => handleDelete(session.id)}
+                        onClick={() => handleDelete(session.id, peerId)}
                         className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[var(--bg-surface-solid)] hover:bg-accent-coral/10 text-[var(--text-muted)] hover:text-accent-coral border border-[var(--glass-border)] text-xs font-semibold rounded-lg transition-colors"
                       >
                         <Trash2 size={14} /> Remove

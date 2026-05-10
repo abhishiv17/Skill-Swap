@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(req: Request) {
   try {
-    const supabase = await createClient();
+    const supabase = await createSupabaseClient();
 
     // Ensure user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
@@ -30,6 +31,13 @@ export async function POST(req: Request) {
     if (profile.credits < 1) {
       return NextResponse.json({ error: 'Insufficient credits. Teach a session to earn more!' }, { status: 403 });
     }
+
+    // --- ESCROW: Deduct credit immediately ---
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    await supabaseAdmin.from('profiles').update({ credits: profile.credits - 1 }).eq('id', user.id);
 
     // Create the session
     const { data: session, error: sessionErr } = await supabase

@@ -52,11 +52,10 @@ export async function POST(req: Request) {
     }
 
     // --- CREDIT ECONOMY LOGIC ---
-    // Deduct 1 credit from learner
-    const { data: learnerData } = await supabaseAdmin.from('profiles').select('credits, total_sessions').eq('id', session.learner_id).single();
+    // Learner already paid when the session was created (escrow).
+    const { data: learnerData } = await supabaseAdmin.from('profiles').select('total_sessions').eq('id', session.learner_id).single();
     if (learnerData) {
       await supabaseAdmin.from('profiles').update({ 
-        credits: Math.max(0, learnerData.credits - 1),
         total_sessions: (learnerData.total_sessions || 0) + 1
       }).eq('id', session.learner_id);
     }

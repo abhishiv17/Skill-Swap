@@ -10,7 +10,7 @@ import { SkillBadge } from '@/components/shared/SkillBadge';
 import {
   Coins, Star, Calendar, Loader2, Save, User, GraduationCap,
   MapPin, Globe, Phone, Github, Linkedin, Languages, Monitor,
-  ChevronDown, X, Plus, Trash2, AlertTriangle,
+  ChevronDown, X, Plus, Trash2, AlertTriangle, Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -72,7 +72,7 @@ function FormSelect({ label, icon: Icon, value, onChange, options, placeholder }
 }
 
 export default function ProfilePage() {
-  const { profile, skills, loading, refreshProfile } = useUser();
+  const { profile, skills, loading, refreshProfile, connectionsCount } = useUser();
 
   // Form state
   const [fullName, setFullName] = useState('');
@@ -261,6 +261,7 @@ export default function ProfilePage() {
             )}
 
             <div className="flex items-center gap-4 mt-3 text-sm text-[var(--text-muted)] flex-wrap">
+              <span className="flex items-center gap-1"><Users size={14} className="text-accent-violet" />{connectionsCount} Connections</span>
               <span className="flex items-center gap-1"><Coins size={14} className="text-accent-amber" />{profile?.credits ?? 0} credits</span>
               <span className="flex items-center gap-1"><Star size={14} className="text-accent-amber fill-accent-amber" />{profile?.average_rating?.toFixed(1) ?? '0.0'}</span>
               <span className="flex items-center gap-1"><Calendar size={14} />Joined {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}</span>

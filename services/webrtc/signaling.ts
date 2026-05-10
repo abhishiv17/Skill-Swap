@@ -16,6 +16,27 @@ const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun.relay.metered.ca:80" },
+    {
+      urls: "turn:global.relay.metered.ca:80",
+      username: "e8dd65c092bfccf46b5c1953",
+      credential: "sPaZ8oMLkLfTYDgf",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:80?transport=tcp",
+      username: "e8dd65c092bfccf46b5c1953",
+      credential: "sPaZ8oMLkLfTYDgf",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:443",
+      username: "e8dd65c092bfccf46b5c1953",
+      credential: "sPaZ8oMLkLfTYDgf",
+    },
+    {
+      urls: "turns:global.relay.metered.ca:443?transport=tcp",
+      username: "e8dd65c092bfccf46b5c1953",
+      credential: "sPaZ8oMLkLfTYDgf",
+    },
   ],
 };
 
@@ -46,7 +67,11 @@ export class WebRTCSignaling {
   async initialize(): Promise<MediaStream> {
     // Get local camera + mic
     this.localStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
+      video: {
+        width: { ideal: 640, max: 1280 },
+        height: { ideal: 360, max: 720 },
+        frameRate: { ideal: 24, max: 30 },
+      },
       audio: true,
     });
 

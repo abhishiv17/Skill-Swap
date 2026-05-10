@@ -131,6 +131,17 @@ export default function MatchesPage() {
         link: '/dashboard/sessions',
       });
 
+      // Send Email
+      fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiverId: match.peer_id,
+          subject: 'New Session Request!',
+          message: `${profile?.username || 'Someone'} wants to learn ${match.offered_skill} from you. Login to CodeCarnage to accept the session request.`
+        })
+      }).catch(console.error);
+
       toast.success(`Session requested with ${match.username}! They've been notified.`);
       setRequestedSessions((prev) => new Set(prev).add(matchKey));
     } catch (err) {

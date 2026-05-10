@@ -7,7 +7,7 @@ import { GlassCard } from '@/components/shared/GlassCard';
 import { GradientButton } from '@/components/shared/GradientButton';
 import { useUser } from '@/hooks/useUser';
 import { toast } from 'sonner';
-import { MapPin, GraduationCap, Star, Clock, UserPlus, MessageSquare, Check, Sparkles, BookOpen, Link as LinkIcon, Github, Linkedin, Award, ThumbsUp } from 'lucide-react';
+import { MapPin, GraduationCap, Star, Clock, UserPlus, MessageSquare, Check, Sparkles, BookOpen, Link as LinkIcon, Github, Linkedin, Award, ThumbsUp, Users } from 'lucide-react';
 import Image from 'next/image';
 
 export default function UserProfilePage() {
@@ -19,6 +19,7 @@ export default function UserProfilePage() {
   const [skills, setSkills] = useState<any[]>([]);
   const [endorsements, setEndorsements] = useState<any[]>([]);
   const [badges, setBadges] = useState<any[]>([]);
+  const [connectionsCount, setConnectionsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
   // Connection states
@@ -36,11 +37,13 @@ export default function UserProfilePage() {
       const { data: userSkills } = await supabase.from('skills').select('*').eq('user_id', id);
       const { data: userEndorsements } = await supabase.from('endorsements').select('*').eq('endorsed_id', id);
       const { data: userBadges } = await supabase.from('user_badges').select('*').eq('user_id', id);
+      const { count: connCount } = await supabase.from('connections').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${id},receiver_id.eq.${id}`);
 
       setUserProfile(profile);
       setSkills(userSkills || []);
       setEndorsements(userEndorsements || []);
       setBadges(userBadges || []);
+      setConnectionsCount(connCount || 0);
       setLoading(false);
     }
     fetchUser();
@@ -102,6 +105,17 @@ export default function UserProfilePage() {
           link: `/dashboard/messages`
         });
 
+        // Send Email
+        fetch('/api/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receiverId: id,
+            subject: 'New Connection Request on CodeCarnage',
+            message: `${currentUser.full_name || currentUser.username || 'Someone'} wants to connect with you! Login to CodeCarnage to accept or decline.`
+          })
+        }).catch(console.error);
+
         setFollowStatus('pending');
         toast.success('Follow request sent!');
       } else if (followStatus === 'pending') {
@@ -122,6 +136,17 @@ export default function UserProfilePage() {
             message: `${currentUser.full_name || currentUser.username || 'Someone'} accepted your connection request!`,
             link: `/dashboard/messages`
           });
+
+          // Send Email
+          fetch('/api/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              receiverId: id,
+              subject: 'Connection Request Accepted!',
+              message: `${currentUser.full_name || currentUser.username || 'Someone'} accepted your connection request! You can now message them.`
+            })
+          }).catch(console.error);
 
           setFollowStatus('accepted');
           toast.success('Connection accepted! You can now message them.');
@@ -274,6 +299,12 @@ export default function UserProfilePage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-[var(--text-muted)]">Credits Earned</span>
                 <span className="font-medium text-accent-amber">{userProfile.credits} 🪙</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-[var(--text-muted)]">Connections</span>
+                <span className="font-medium text-[var(--text-primary)] flex items-center gap-1">
+                  <Users size={14} className="text-accent-violet" /> {connectionsCount}
+                </span>
               </div>
               
               {/* Badges Section */}

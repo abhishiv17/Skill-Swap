@@ -40,6 +40,7 @@ interface UseUserReturn {
   profile: UserProfile | null;
   skills: UserSkill[];
   loading: boolean;
+  connectionsCount: number;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -50,19 +51,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [skills, setSkills] = useState<UserSkill[]>([]);
+  const [connectionsCount, setConnectionsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   const [supabase] = useState(() => createClient());
   const profileFetchedRef = useRef(false);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const [{ data: profileData }, { data: skillsData }] = await Promise.all([
+    const [profileRes, skillsRes, connectionsRes] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).single(),
       supabase.from('skills').select('*').eq('user_id', userId),
+      supabase.from('connections').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester_id.eq.${userId},receiver_id.eq.${userId}`),
     ]);
 
-    if (profileData) setProfile(profileData as UserProfile);
-    if (skillsData) setSkills(skillsData as UserSkill[]);
+    if (profileRes.data) setProfile(profileRes.data as UserProfile);
+    if (skillsRes.data) setSkills(skillsRes.data as UserSkill[]);
+    if (connectionsRes.count !== null) setConnectionsCount(connectionsRes.count);
   }, [supabase]);
 
   const refreshProfile = useCallback(async () => {
@@ -114,7 +118,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [supabase.auth]);
 
   return (
-    <UserContext.Provider value={{ user, profile, skills, loading, signOut, refreshProfile }}>
+    <UserContext.Provider value={{ user, profile, skills, loading, connectionsCount, signOut, refreshProfile }}>
       {children}
     </UserContext.Provider>
   );

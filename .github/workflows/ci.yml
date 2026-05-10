@@ -1,0 +1,40 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-lint:
+    name: Lint & Build Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Verify Build
+        run: npm run build
+        env:
+          # Add any non-secret environment variables needed for the build here
+          # DO NOT put real secrets (like Supabase Service Role) here.
+          # Next.js build might require NEXT_PUBLIC variables to be present,
+          # so we provide dummy variables if they are strictly required during build time.
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy-url.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-anon-key"
